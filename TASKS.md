@@ -94,7 +94,7 @@ docker compose up --build -d
 
 2. **Perform a `PUT` operation for the key "a" on the leader.** Check the status of the different nodes. What changes have occurred and why (if any)?
 
-   *(Replace `8080` with the leader's port if needed):*
+   (Replace 8080 with the port of the current leader: node1=8080, node2=8081, node3=8082.)
    ```bash
    curl -X POST http://localhost:8080/keys/a -H "Content-Type: application/json" -d '{"type": "PUT", "value": ["cat", "dog"]}'
    ```
@@ -107,6 +107,7 @@ docker compose up --build -d
 
 3. **Perform an `APPEND` operation for the key "a" on the leader.** Check the status of the different nodes. What changes have occurred and why (if any)?
 
+   (Replace 8080 with the port of the current leader: node1=8080, node2=8081, node3=8082.)
    ```bash
    curl -X POST http://localhost:8080/keys/a -H "Content-Type: application/json" -d '{"type": "APPEND", "value": "mouse"}'
    ```
@@ -171,7 +172,7 @@ You will begin by simulating several server failures and their recoveries in you
    curl -s http://localhost:8081/admin/status | jq
    curl -s http://localhost:8082/admin/status | jq
    ```
-   Execute `GET` on the restarted previous leader:
+   Execute `GET` on the restarted previous leader (replace 8080 with the port of the server you restarted):
    ```bash
    curl -s http://localhost:8080/keys/a | jq
    ```
@@ -182,8 +183,8 @@ You will begin by simulating several server failures and their recoveries in you
 
    *(Note: The leader changed in question 1 and node1 rejoined as a follower in question 2. First check statuses to find the current leader, for example with `curl -s http://localhost:808{0,1,2}/admin/status | jq -c '{self, state, leader}'`. Then stop a non-leader first and the leader second by their container names, and query the remaining server)*:
    ```bash
-   docker compose stop node1   # non-leader
-   docker compose stop node2   # leader
+   docker compose stop <a-follower>
+   docker compose stop <the-leader>
    ```
    Check the status of the remaining active server (e.g. node3):
    ```bash
@@ -246,7 +247,7 @@ Create a network partition with 2 servers (including the leader) on the first pa
    ```bash
    ./partition.sh "node1 node2" "node3 node4 node5"
    ```
-3. Check statuses across both partitions (adjust ports to match your partitions):
+3. Check statuses across both partitions (adjust ports to match your partitions). Wait about 40 seconds first: PySyncObj steps a leader down only after 30 seconds without a majority, and the minority needs time to start elections.
    ```bash
    curl -s http://localhost:8080/admin/status | jq   # partition 1 (minority with former leader)
    curl -s http://localhost:8082/admin/status | jq   # partition 2 (majority)
@@ -254,8 +255,10 @@ Create a network partition with 2 servers (including the leader) on the first pa
 4. Reconnect and inspect what happens:
    ```bash
    ./reconnect.sh
-   curl -s http://localhost:8080/admin/status | jq
-   curl -s http://localhost:8082/admin/status | jq
+   ```
+   Wait about 10 seconds before checking the statuses, then check all 5 servers with the loop from step 1.
+   ```bash
+   for port in 8080 8081 8082 8083 8084; do echo -n "Port $port: "; curl -s http://localhost:$port/admin/status | jq -c '{state, leader, raft_term}'; done
    ```
 
 #### Experiment 2 (0.5 pts)
@@ -270,7 +273,7 @@ Create a network partition with 3 servers (including the leader) on the first pa
    ```bash
    ./partition.sh "node3 node4 node5" "node1 node2"
    ```
-3. Check statuses on both partitions (query a port from each group, for example 8083 from the first group and 8080 from the second):
+3. Check statuses on both partitions (query a port from each group, for example 8083 from the first group and 8080 from the second). Wait about 40 seconds first: PySyncObj steps a leader down only after 30 seconds without a majority, and the minority needs time to start elections.
    ```bash
    curl -s http://localhost:8083/admin/status | jq   # partition 1 (majority with leader)
    curl -s http://localhost:8080/admin/status | jq   # partition 2 (minority)
@@ -278,6 +281,9 @@ Create a network partition with 3 servers (including the leader) on the first pa
 4. Reconnect all nodes and observe status:
    ```bash
    ./reconnect.sh
+   ```
+   Wait about 10 seconds before checking the statuses, then check all 5 servers with the loop from step 1.
+   ```bash
    for port in 8080 8081 8082 8083 8084; do echo -n "Port $port: "; curl -s http://localhost:$port/admin/status | jq -c '{state, leader, raft_term}'; done
    ```
 5. Clean up when finished:
