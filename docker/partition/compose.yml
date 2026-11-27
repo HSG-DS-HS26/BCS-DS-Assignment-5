@@ -1,0 +1,50 @@
+# The 5 Raft servers of the network partition experiments in Task 3.
+# Run from this folder: docker compose up --build -d
+# NET_ADMIN lets partition.sh add iptables rules inside each container.
+
+x-node: &node
+  build:
+    context: ../..
+    dockerfile: docker/Dockerfile
+  image: kvstorage
+  cap_add: [NET_ADMIN]
+  networks: [kvnet]
+  # An exception in put or append makes PySyncObj log a traceback 20 times a
+  # second until the node is stopped; this caps the log at 20 MB per node.
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "2"}
+
+services:
+  node1:
+    <<: *node
+    container_name: node1
+    command: ["8080", "node1:6000", "node2:6001", "node3:6002", "node4:6003", "node5:6004"]
+    ports: ["8080:8080"]
+
+  node2:
+    <<: *node
+    container_name: node2
+    command: ["8081", "node2:6001", "node1:6000", "node3:6002", "node4:6003", "node5:6004"]
+    ports: ["8081:8081"]
+
+  node3:
+    <<: *node
+    container_name: node3
+    command: ["8082", "node3:6002", "node1:6000", "node2:6001", "node4:6003", "node5:6004"]
+    ports: ["8082:8082"]
+
+  node4:
+    <<: *node
+    container_name: node4
+    command: ["8083", "node4:6003", "node1:6000", "node2:6001", "node3:6002", "node5:6004"]
+    ports: ["8083:8083"]
+
+  node5:
+    <<: *node
+    container_name: node5
+    command: ["8084", "node5:6004", "node1:6000", "node2:6001", "node3:6002", "node4:6003"]
+    ports: ["8084:8084"]
+
+networks:
+  kvnet:

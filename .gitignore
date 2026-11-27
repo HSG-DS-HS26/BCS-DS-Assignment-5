@@ -1,0 +1,14 @@
+# Python (uv sync, editor)
+.venv/
+__pycache__/
+*.pyc
+
+# Editors and OS
+.idea/
+.DS_Store
+Thumbs.db
+
+# The PDF that submit.sh writes for Canvas
+*-submission.pdf
+
+tmp/

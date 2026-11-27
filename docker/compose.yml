@@ -1,0 +1,37 @@
+# The 3 Raft servers of Tasks 2 and 3. Run from this folder: docker compose up --build -d
+# Each node runs kv/kvstorage_http.py <HTTP port> <own Raft address> <partners' Raft addresses>.
+# Docker's DNS resolves the container names (node1, node2, node3) to their addresses.
+
+x-node: &node
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  image: kvstorage
+  networks: [kvnet]
+  # An exception in put or append makes PySyncObj log a traceback 20 times a
+  # second until the node is stopped; this caps the log at 20 MB per node.
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "2"}
+
+services:
+  node1:
+    <<: *node
+    container_name: node1
+    command: ["8080", "node1:6000", "node2:6001", "node3:6002"]
+    ports: ["8080:8080"]
+
+  node2:
+    <<: *node
+    container_name: node2
+    command: ["8081", "node2:6001", "node1:6000", "node3:6002"]
+    ports: ["8081:8081"]
+
+  node3:
+    <<: *node
+    container_name: node3
+    command: ["8082", "node3:6002", "node1:6000", "node2:6001"]
+    ports: ["8082:8082"]
+
+networks:
+  kvnet:

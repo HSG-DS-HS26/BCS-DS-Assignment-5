@@ -1,0 +1,7 @@
+# The node image needs only the code and the lock file (see docker/Dockerfile).
+*
+!kv/
+!pyproject.toml
+!uv.lock
+!.python-version
+kv/__pycache__/

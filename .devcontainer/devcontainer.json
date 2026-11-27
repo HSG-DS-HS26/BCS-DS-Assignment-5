@@ -1,0 +1,33 @@
+{
+  "name": "Raft key/value service",
+  // bookworm, not the default trixie: docker-in-docker's Moby packages do not exist for trixie.
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  "features": {
+    // Docker inside the dev container: the Raft nodes run as containers you can stop,
+    // restart and partition with the scripts in docker/.
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  // .venv with PySyncObj and Flask, so the editor resolves the imports in kv/.
+  "postCreateCommand": "pipx install uv && uv sync",
+  "forwardPorts": [8080, 8081, 8082, 8083, 8084, 8060],
+  "portsAttributes": {
+    "8080": { "label": "node1" },
+    "8081": { "label": "node2" },
+    "8082": { "label": "node3" },
+    "8083": { "label": "node4 (partition)" },
+    "8084": { "label": "node5 (partition)" },
+    // python raftscope/server.py (Tasks 1 and 5): opens RaftScope in the browser when it starts.
+    "8060": { "label": "RaftScope (Tasks 1 and 5)", "onAutoForward": "openBrowser" }
+  },
+  "hostRequirements": { "cpus": 2, "memory": "4gb" },
+  "customizations": {
+    "vscode": {
+      // spencerwmiles.vscode-task-buttons: the "Hand in" button in the status bar; see .vscode/settings.json.
+      "extensions": ["ms-python.python", "spencerwmiles.vscode-task-buttons"],
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "python.analysis.extraPaths": ["kv"]
+      }
+    }
+  }
+}

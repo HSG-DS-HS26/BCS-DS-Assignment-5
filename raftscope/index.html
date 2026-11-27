@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RaftScope</title>
+    <link href="bootstrap-3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap-slider/css/bootstrap-slider.css" rel="stylesheet">
+    <script src="jquery/jquery.min.js"></script>
+    <script src="bootstrap-3.1.1/js/bootstrap.min.js"></script>
+    <script src="bootstrap-slider/js/bootstrap-slider.js"></script>
+    <script src="bootstrap-contextmenu/bootstrap-contextmenu.js"></script>
+    <script src="util.js"></script>
+    <script src="raft.js"></script>
+    <script src="state.js"></script>
+    <script src="script.js"></script>
+    <link href="style.css" rel="stylesheet">
+  </head>
+  <body>
+    <header class="rs-header">
+      <div class="container">
+        <h1 class="rs-title">RaftScope</h1>
+        <p class="rs-subtitle">Interactive simulation of the Raft consensus algorithm with five servers</p>
+        <button type="button" class="btn btn-default btn-sm rs-help-button" data-toggle="modal" data-target="#modal-help">
+          Shortcuts <kbd>?</kbd>
+        </button>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="row">
+        <div class="col-md-8">
+          <figure class="rs-panel rs-figure">
+            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 760 400" preserveAspectRatio="xMidYMid meet" class="rs-svg">
+              <defs>
+                <pattern id="noop-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="6" stroke="#1d2733" stroke-width="2" stroke-opacity="0.6" />
+                </pattern>
+                <marker id="TriangleOutM" orient="auto" refX="0.0" refY="0.0" style="overflow:visible">
+                  <path d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z" transform="scale(0.4)" />
+                </marker>
+                <marker id="TriangleOutS-RequestVote" orient="auto" refX="0.0" refY="0.0" style="overflow:visible">
+                  <path d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z" transform="scale(0.3)" class="message RequestVote" />
+                </marker>
+                <marker id="TriangleOutS-AppendEntries" orient="auto" refX="0.0" refY="0.0" style="overflow:visible">
+                  <path d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z" transform="scale(0.3)" class="message AppendEntries" />
+                </marker>
+              </defs>
+              <circle id="ring" />
+              <g id="partition-ring"></g>
+              <g id="pause" class="resumed">
+                <rect width="1" height="3" x="-1.25" y="-1.5" />
+                <rect width="1" height="3" x=".25"   y="-1.5" />
+              </g>
+              <g id="messages"></g>
+              <g id="servers"></g>
+              <g class="logs"></g>
+            </svg>
+            <figcaption>
+              <span class="rs-fig-label">Cluster state.</span>
+              On the left, the five servers S1 to S5: each server is filled with the color of its
+              current term, and the arc around it shows the time left until its election timeout.
+              On the right, the replicated log of each server, from index 1 to 10. Click a server or
+              a message to see its details, and right-click it to stop, restart or drop it.
+            </figcaption>
+          </figure>
+
+          <section class="rs-panel">
+            <h2 class="rs-panel-title">Simulation</h2>
+            <div class="rs-control">
+              <a id="time-button" href="#" class="rs-control-label" title="Pause or resume">
+                <span id="time-icon" class="glyphicon glyphicon-time"></span>
+                <span>Time</span>
+              </a>
+              <div class="rs-slider"><input id="time" style="width: 100%" data-slider-id='timeSlider' type="text" data-slider-min="0" data-slider-max="1000" data-slider-step="1" data-slider-value="0" /></div>
+            </div>
+            <div class="rs-control">
+              <span class="rs-control-label" title="Simulation speed, relative to real time">
+                <span id="speed-icon" class="glyphicon glyphicon-dashboard"></span>
+                <span>Speed</span>
+              </span>
+              <div class="rs-slider"><input id="speed" style="width: 100%" data-slider-id='speedSlider' type="text" data-slider-min="0" data-slider-max="3" data-slider-step=".01" data-slider-value="2" /></div>
+            </div>
+            <div class="rs-control rs-control-input">
+              <label class="rs-control-label" for="request-value" title="Value the client writes: Send delivers it to the current leader">
+                <span class="glyphicon glyphicon-pencil"></span>
+                <span>Client value</span>
+              </label>
+              <div class="rs-slider">
+                <div class="input-group input-group-sm">
+                  <input id="request-value" class="form-control" type="text" maxlength="4" placeholder="value to set with the next client request, e.g. x=1 (empty: term only)" />
+                  <span class="input-group-btn"><button id="request-send" class="btn btn-primary" type="button">Send</button></span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-md-4">
+          <section class="rs-panel">
+            <h2 class="rs-panel-title">Legend</h2>
+            <table class="rs-legend">
+              <tr>
+                <td><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" class="lg-server" style="fill: #66c2a5" /><path d="M 12,1.5 A 10.5,10.5 0 0,1 22.5,12" class="lg-arc" /></svg></td>
+                <td>Server; fill = current term, grey arc = time left until its election timeout (dark arc while candidate)</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><text x="12" y="13" class="lg-leader">S1</text></svg></td>
+                <td>Leader (label in red, full dark ring: it has no election timer)</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" class="lg-server" style="fill: #c4c9cf" /></svg></td>
+                <td>Stopped server</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" class="message RequestVote" /></svg></td>
+                <td>RequestVote message</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" class="message AppendEntries" /></svg></td>
+                <td>AppendEntries message</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><g class="message reply AppendEntries"><circle cx="12" cy="12" r="6" class="lg-reply" /><path d="M 6,12 L 18,12 M 12,6 L 12,18" /></g></svg></td>
+                <td>Reply: + granted / success, &minus; rejected</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" class="lg-entry" /></svg></td>
+                <td>Committed log entry (number = term; a client value shows in the box, its term in the corner)</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" class="lg-entry" stroke-dasharray="3 3" /></svg></td>
+                <td>Uncommitted log entry</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><rect x="9" y="5" width="6" height="14" class="lg-entry" /><rect x="9" y="5" width="6" height="14" class="lg-noop" /></svg></td>
+                <td>No-op entry, added by a new leader</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="3" /><path d="M 17,20 L 17,8" style="marker-end:url(#TriangleOutM); stroke: #1d2733; stroke-width: 2" /></svg></td>
+                <td>Leader's match index (dot) and next index (arrow)</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" class="lg-side-a" /></svg></td>
+                <td>Partition side A</td>
+              </tr>
+              <tr>
+                <td><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" class="lg-side-b" /></svg></td>
+                <td>Partition side B</td>
+              </tr>
+            </table>
+          </section>
+
+          <section class="rs-panel" id="partition-controls">
+            <h2 class="rs-panel-title">Network</h2>
+            <div class="btn-group">
+              <button id="partition-open" type="button" class="btn btn-default btn-sm">Partition network</button>
+              <button id="partition-clear" type="button" class="btn btn-default btn-sm" disabled>Reconnect all</button>
+            </div>
+            <p id="partition-status" class="rs-status"></p>
+          </section>
+
+          <section class="rs-panel">
+            <h2 class="rs-panel-title">Keyboard and mouse</h2>
+            <dl class="rs-keys">
+              <dt><kbd>Space</kbd> <kbd>.</kbd></dt><dd>pause / resume</dd>
+              <dt><kbd>C</kbd></dt><dd>client request to the leader</dd>
+              <dt><kbd>R</kbd></dt><dd>restart the leader</dd>
+              <dt><kbd>B</kbd></dt><dd>resume all servers</dd>
+              <dt><kbd>T</kbd></dt><dd>spread election timers</dd>
+              <dt><kbd>A</kbd></dt><dd>align election timers</dd>
+              <dt><kbd>L</kbd></dt><dd>reload the demo scenario</dd>
+              <dt><kbd>F</kbd></dt><dd>fork timeline, discard future</dd>
+              <dt>right-click</dt><dd>stop, resume, restart, time out or send a request to a server; drop a message</dd>
+            </dl>
+          </section>
+        </div>
+      </div>
+
+      <section class="rs-panel" id="exercise-controls">
+        <h2 class="rs-panel-title">Exercise</h2>
+        <div class="btn-group">
+          <button id="exercise-create" type="button" class="btn btn-default btn-sm">Create exercise</button>
+          <button id="exercise-cancel" type="button" class="btn btn-default btn-sm hidden">Cancel</button>
+          <button id="exercise-load" type="button" class="btn btn-default btn-sm">Import challenge</button>
+          <button id="exercise-clear-exercise" type="button" class="btn btn-default btn-sm hidden">Clear exercise</button>
+        </div>
+        <p id="exercise-status" class="rs-status"></p>
+        <input type="file" id="exercise-file" accept=".json,application/json" class="hidden">
+
+        <div class="row" id="exercise-create-panel">
+          <div class="col-sm-6">
+            <p class="rs-note">
+              <strong>Create exercise</strong> freezes the paused simulation as the stage your partner
+              has to reason about. Fill this in, press <strong>Set question and continue the run</strong>,
+              run the simulation until the solution becomes visible, then press
+              <strong>Export challenge</strong>: the exercise server saves the exercise as
+              <code>exercises/&lt;name&gt;.json</code> in your repository, or downloads the JSON file
+              if no server is running.
+            </p>
+            <div class="form-group form-group-sm">
+              <label class="control-label" for="exercise-name">Exercise name (used as the file name)</label>
+              <input type="text" class="form-control" id="exercise-name" placeholder="lowercase-letters-digits-or-dashes">
+            </div>
+            <div class="form-group form-group-sm">
+              <label class="control-label" for="exercise-create-question">Question</label>
+              <textarea class="form-control" id="exercise-create-question" rows="2" placeholder="What happens to the entry the old leader just appended?"></textarea>
+            </div>
+            <button type="button" id="exercise-set" class="btn btn-primary btn-sm">Set question and continue the run</button>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-group form-group-sm" id="exercise-answers">
+              <label class="control-label">Answers (select the correct answer)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-addon"><input type="radio" name="exercise-correct" value="0"></span>
+                <input type="text" class="form-control" id="exercise-answer-0" placeholder="Answer A">
+              </div>
+              <div class="input-group input-group-sm">
+                <span class="input-group-addon"><input type="radio" name="exercise-correct" value="1"></span>
+                <input type="text" class="form-control" id="exercise-answer-1" placeholder="Answer B">
+              </div>
+              <div class="input-group input-group-sm">
+                <span class="input-group-addon"><input type="radio" name="exercise-correct" value="2"></span>
+                <input type="text" class="form-control" id="exercise-answer-2" placeholder="Answer C">
+              </div>
+              <div class="input-group input-group-sm">
+                <span class="input-group-addon"><input type="radio" name="exercise-correct" value="3"></span>
+                <input type="text" class="form-control" id="exercise-answer-3" placeholder="Answer D">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="exercise-solve-panel" style="display: none">
+          <p id="exercise-solve-question" class="rs-question"></p>
+          <div id="exercise-solve-answers" class="list-group"></div>
+          <p id="exercise-solve-feedback"></p>
+          <button type="button" id="exercise-reveal" class="btn btn-primary btn-sm" disabled>Show solution</button>
+          <p class="rs-note">Pick an answer: the correct answer is highlighted. Then show the solution to watch the recorded run from the stage.</p>
+        </div>
+      </section>
+
+      <footer class="rs-footer">
+        Based on <a href="https://github.com/ongardie/raftscope">RaftScope</a> by Diego Ongaro
+        (&copy; 2014 Stanford University, see <a href="LICENSE">LICENSE</a>), with network partitions from
+        <a href="https://github.com/JeremyLemee/raftscope">JeremyLemee/raftscope</a> and exercises added for the
+        Distributed Systems course at the University of St.Gallen.
+        Raft: D. Ongaro and J. Ousterhout, <em>In Search of an Understandable Consensus Algorithm</em>, USENIX ATC 2014.
+      </footer>
+    </main>
+
+    <div id="modal-details" class="modal" tabindex="-1" data-keyboard="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title"></h4>
+          </div>
+          <div class="modal-body">
+          </div>
+          <div class="modal-footer">
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div id="modal-partition" class="modal" tabindex="-1" data-keyboard="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Network partition</h4>
+          </div>
+          <div class="modal-body">
+            <p>Place each server on a side of the partition. Messages across the split are dropped.</p>
+            <div class="row">
+              <div class="col-sm-6">
+                <h5 class="rs-side-a">Side A</h5>
+                <div id="partition-sideA" class="list-group partition-list" data-side="A"></div>
+              </div>
+              <div class="col-sm-6">
+                <h5 class="rs-side-b">Side B</h5>
+                <div id="partition-sideB" class="list-group partition-list" data-side="B"></div>
+              </div>
+            </div>
+            <p id="partition-preview" class="rs-status"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="partition-apply" class="btn btn-primary" disabled>Create partition</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-help" class="modal" tabindex="-1" data-keyboard="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Keyboard shortcuts</h4>
+          </div>
+          <div class="modal-body">
+            <table class="table table-condensed">
+              <tr>
+                <td><kbd>Space</kbd> / <kbd>.</kbd></td>
+                <td>Pause/unpause</td>
+              </tr>
+              <tr>
+                <td><kbd>?</kbd></td>
+                <td>Help</td>
+              </tr>
+              <tr>
+                <td><kbd>C</kbd></td>
+                <td>Submit client request to leader of highest term, if any</td>
+              </tr>
+              <tr>
+                <td><kbd>R</kbd></td>
+                <td>Restart leader of highest term, if any</td>
+              </tr>
+              <tr>
+                <td><kbd>T</kbd></td>
+                <td>Adjust election timers to avoid a split vote</td>
+              </tr>
+              <tr>
+                <td><kbd>A</kbd></td>
+                <td>Align election timers to encourage a split vote</td>
+              </tr>
+              <tr>
+                <td><kbd>L</kbd></td>
+                <td>Set up log replication start scenario</td>
+              </tr>
+              <tr>
+                <td><kbd>B</kbd></td>
+                <td>Resume all servers</td>
+              </tr>
+              <tr>
+                <td><kbd>F</kbd></td>
+                <td>Fork playback, discarding future</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-section" class="modal" tabindex="-1" data-keyboard="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <div class="text-center" style="padding: 200px 0">
+              <h1></h1>
+              <h2></h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-exercise-import" class="modal" tabindex="-1" data-keyboard="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Import a challenge</h4>
+          </div>
+          <div class="modal-body">
+            <p class="rs-note">These challenges are in the exercises directory the server watches. For a file stored elsewhere, use Upload a JSON file.</p>
+            <div id="exercise-import-list" class="list-group"></div>
+          </div>
+          <div class="modal-footer">
+            <button id="exercise-upload" type="button" class="btn btn-default">Upload a JSON file...</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="context-menu">
+      <ul class="dropdown-menu" role="menu">
+      </ul>
+    </div>
+
+  </body>
+</html>

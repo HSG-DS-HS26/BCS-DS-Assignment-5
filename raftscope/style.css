@@ -1,0 +1,619 @@
+/* RaftScope: a restrained, paper-like layout. Term colors (ColorBrewer Set2) are set in script.js. */
+
+:root {
+  --ink: #1d2733;
+  --muted: #5b6675;
+  --line: #d8dde3;
+  --panel: #ffffff;
+  --bg: #f4f5f7;
+  --plot: #eef1f4;
+  --accent: #1f4e79;
+  --leader: #b2182b;
+  --request-vote: #1b7837;
+  --append-entries: #2166ac;
+  --side-a: #5e3c99;
+  --side-b: #e66101;
+  --serif: "Iowan Old Style", "Charter", "Georgia", "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+}
+
+kbd {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  box-shadow: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 1px 5px;
+}
+
+code {
+  color: var(--ink);
+  background: var(--plot);
+  font-family: var(--mono);
+}
+
+/* ------------------------------------------------------------------ header */
+
+.rs-header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+  padding: 14px 0 12px;
+}
+
+.rs-header .container {
+  position: relative;
+}
+
+.rs-title {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.rs-subtitle {
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+.rs-help-button {
+  position: absolute;
+  right: 15px;
+  top: 8px;
+}
+
+/* ------------------------------------------------------------------ panels */
+
+.rs-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+}
+
+.rs-panel-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.rs-figure {
+  margin: 0 0 20px;
+}
+
+.rs-figure figcaption {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 14px;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.rs-fig-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.rs-status {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 8px 0 0;
+  min-height: 1.5em;
+}
+
+.rs-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.rs-question {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  margin: 12px 0;
+}
+
+.rs-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  margin: 10px 0 30px;
+  padding-top: 12px;
+}
+
+.btn {
+  border-radius: 3px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background: #173b5c;
+  border-color: #173b5c;
+}
+
+.form-control,
+.input-group-addon {
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.control-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+#exercise-answers .input-group {
+  margin-bottom: 6px;
+}
+
+.modal-content {
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(29, 39, 51, 0.18);
+}
+
+.modal-title {
+  font-family: var(--serif);
+  font-weight: 600;
+}
+
+#modal-details {
+  font-size: 13px;
+}
+
+@media (min-width: 768px) {
+  #modal-details .modal-body .dl-horizontal dt {
+    width: 100px;
+  }
+  .dl-horizontal dd {
+    margin-left: 120px;
+  }
+}
+
+.tooltip {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* ----------------------------------------------------------------- sliders */
+
+.rs-control {
+  align-items: center;
+  display: flex;
+  margin-bottom: 4px;
+  padding-top: 28px; /* room for the value tooltip above the slider */
+}
+
+.rs-control-input {
+  padding-top: 8px;
+}
+
+.rs-control-input .rs-control-label {
+  flex-basis: 115px;
+}
+
+.rs-control-label {
+  color: var(--ink);
+  flex: 0 0 80px;
+  font-weight: 600;
+}
+
+.rs-control-label .glyphicon {
+  color: var(--muted);
+  margin-right: 6px;
+}
+
+a.rs-control-label,
+a.rs-control-label:hover,
+a.rs-control-label:focus {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.rs-slider {
+  flex: 1 1 auto;
+  padding: 0 10px;
+}
+
+.rs-slider .slider.slider-horizontal {
+  width: 100% !important;
+}
+
+.slider-track {
+  background: var(--plot);
+  background-image: none;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.slider-selection {
+  background: #b9c7d6;
+  background-image: none;
+  box-shadow: none;
+}
+
+.slider-handle {
+  background: var(--accent);
+  background-image: none;
+  box-shadow: none;
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ legend */
+
+.rs-legend {
+  font-size: 13px;
+  width: 100%;
+}
+
+.rs-legend td {
+  padding: 3px 0;
+  vertical-align: middle;
+}
+
+.rs-legend td:first-child {
+  width: 34px;
+}
+
+.rs-legend svg {
+  display: block;
+  height: 24px;
+  overflow: visible;
+  width: 24px;
+}
+
+.rs-legend .lg-server {
+  stroke: var(--line);
+}
+
+.rs-legend .lg-arc {
+  fill: none;
+  stroke: #7b8794;
+  stroke-width: 3;
+}
+
+.rs-legend .lg-leader {
+  dominant-baseline: central;
+  fill: var(--leader);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.rs-legend .lg-entry {
+  fill: #66c2a5;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.rs-legend .lg-noop,
+svg .entry rect.noop-hatch {
+  fill: url(#noop-hatch);
+  stroke: none;
+}
+
+.rs-legend .lg-side-a,
+.rs-legend .lg-side-b {
+  fill: var(--plot);
+  stroke-width: 3;
+}
+
+.rs-legend .lg-side-a { stroke: var(--side-a); }
+.rs-legend .lg-side-b { stroke: var(--side-b); }
+
+.rs-legend .message.reply path {
+  stroke-width: 2;
+}
+
+.rs-keys {
+  display: grid;
+  font-size: 13px;
+  gap: 4px 10px;
+  grid-template-columns: max-content 1fr;
+  margin: 0;
+}
+
+.rs-keys dt {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.rs-keys dd {
+  margin: 0;
+}
+
+.rs-side-a { color: var(--side-a); font-weight: 600; }
+.rs-side-b { color: var(--side-b); font-weight: 600; }
+
+/* ----------------------------------------------------------------- figure */
+
+.rs-svg {
+  display: block;
+  font-family: var(--sans);
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+  height: auto;
+  width: 100%;
+}
+
+svg a:hover {
+  cursor: pointer;
+}
+
+svg #ring,
+svg #logsbg {
+  fill: var(--plot);
+  stroke: var(--line);
+}
+
+svg .server path {
+  fill: none;
+  stroke: var(--ink);
+}
+
+svg .server.follower path {
+  stroke: #7b8794;
+}
+
+svg .server circle.background {
+  stroke: rgba(29, 39, 51, 0.25);
+  stroke-width: 1;
+}
+
+svg .server text {
+  dominant-baseline: central;
+  text-align: center;
+  text-anchor: middle;
+}
+
+svg .server text.serverid {
+  fill: var(--muted);
+  font-weight: 600;
+}
+
+svg .partition-slice.side-a { fill: var(--side-a); fill-opacity: 0.15; }
+svg .partition-slice.side-b { fill: var(--side-b); fill-opacity: 0.15; }
+
+svg .partition-cut {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-dasharray: 8 6;
+}
+
+svg .server.partition-a circle.background {
+  stroke: var(--side-a);
+  stroke-width: 4;
+}
+
+svg .server.partition-b circle.background {
+  stroke: var(--side-b);
+  stroke-width: 4;
+}
+
+svg .server.leader text.serverid,
+svg .logs text.serverid.leader {
+  fill: var(--leader);
+  font-weight: 700;
+}
+
+svg .server a,
+svg .server a:active,
+svg .server a:hover,
+svg .server a:focus,
+svg .server a:visited {
+  font-size: inherit;
+  text-decoration: none;
+}
+
+svg .server .votes .have {
+  fill: var(--ink);
+  stroke: var(--ink);
+}
+
+svg .server .votes .coming {
+  fill: #9aa5b1;
+  stroke: var(--ink);
+}
+
+svg .server .votes .no {
+  fill: none;
+  stroke: var(--ink);
+}
+
+svg .message {
+  stroke-width: 3;
+}
+
+svg .message.RequestVote {
+  fill: var(--request-vote);
+  stroke: var(--request-vote);
+}
+
+svg .message.AppendEntries {
+  fill: var(--append-entries);
+  stroke: var(--append-entries);
+}
+
+svg .message.reply circle {
+  /* fill with no opacity so it's clickable */
+  fill-opacity: 0;
+}
+
+svg .logs text {
+  dominant-baseline: central;
+  text-align: center;
+  text-anchor: middle;
+}
+
+svg #log-indexes text {
+  fill: var(--muted);
+  font-size: 15px;
+}
+
+svg .logs text.serverid {
+  fill: var(--muted);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+svg .log {
+  fill: #fff;
+  stroke: #c3cad2;
+}
+
+svg .entry rect {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+svg .entry text {
+  dominant-baseline: central;
+  fill: var(--ink);
+  font-size: 17px;
+  text-align: center;
+  text-anchor: middle;
+}
+
+svg #pause.paused {
+  fill: #fff;
+  fill-opacity: 0.85;
+}
+
+svg #pause.resumed {
+  fill: none;
+}
+
+/* --------------------------------------------------------------- partition */
+
+#partition-controls .btn {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.partition-list .partition-node {
+  cursor: pointer;
+}
+
+.partition-list .partition-move {
+  font-size: 11px;
+}
+
+/* --------------------------------------------------- section slides (modal) */
+
+.slide {
+  height: 500px;
+}
+
+.slide p {
+  font-size: 16pt;
+}
+
+.slide .modal-header {
+  padding: 5px 15px;
+}
+
+.slide ol,
+.slide ul {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.slide ul {
+  font-size: 20pt;
+  line-height: 16pt;
+}
+
+.slide li p {
+  color: var(--ink);
+  font-size: 16pt;
+  font-weight: normal;
+  line-height: 1.4;
+}
+
+.slide blockquote {
+  border: none;
+  margin-bottom: 15px;
+  padding: 0 0 0 20px;
+}
+
+.slide blockquote p {
+  color: var(--muted);
+  font-size: 14pt;
+  font-style: italic;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+.slide h1,
+.slide h2,
+.slide h3,
+.slide h4,
+.slide h5,
+.slide h6,
+.blue {
+  color: var(--accent);
+}
+
+.slide .gray {
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- exercise */
+
+#exercise-solve-answers .exercise-answer {
+  cursor: pointer;
+}
+
+#exercise-solve-answers .exercise-answer.correct {
+  background-color: #e5f2e8;
+  border-color: #b9dcc2;
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+#exercise-solve-answers .exercise-answer.picked-correct,
+#exercise-solve-answers .exercise-answer.picked-wrong {
+  font-weight: 600;
+}
+
+#exercise-solve-answers .exercise-answer.picked-wrong {
+  background-color: #f8e6e8;
+  border-color: #e7c1c6;
+  color: #8e1b2a;
+}
+
+#exercise-solve-feedback {
+  font-weight: 600;
+}
+
+#exercise-solve-feedback:empty {
+  display: none;
+}
